@@ -1,0 +1,25 @@
+{
+  "audio_path": "C:/MMDmouthTest/audio/zh_vo_MAIN_YHX_2_7.wav",
+  "segment_id": "real-cn-0001",
+  "requested_language_code": "zh-CN",
+  "start_sec": 0.0,
+  "end_sec": null,
+  "score_config": {
+    "version": 2,
+    "confidence_weight": 0.7,
+    "coverage_weight": 0.2,
+    "presence_weight": 0.1,
+    "preferred_language_weight": 0.35
+  },
+  "models": [
+    {
+      "model_id": "vosk-model-small-cn-0.22",
+      "language_code": "zh-CN",
+      "model_path": "C:/MMDmouthTest/models/vosk-model-small-cn-0.22",
+      "calibration_bias": 0.0,
+      "calibration_temperature": 1.0,
+      "enabled": true,
+      "priority": 0
+    }
+  ]
+}

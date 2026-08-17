@@ -1,0 +1,43 @@
+{
+  "audio_path": "D:/MMDmouth/audio/sample.wav",
+  "segment_id": "segment-0001",
+  "requested_language_code": "zh-CN",
+  "start_sec": 0.0,
+  "end_sec": null,
+  "score_config": {
+    "version": 2,
+    "confidence_weight": 0.7,
+    "coverage_weight": 0.2,
+    "presence_weight": 0.1,
+    "preferred_language_weight": 0.35
+  },
+  "models": [
+    {
+      "model_id": "vosk-model-small-cn-0.22",
+      "language_code": "zh-CN",
+      "model_path": "D:/MMDmouth/models/vosk-model-small-cn-0.22",
+      "calibration_bias": 0.0,
+      "calibration_temperature": 1.0,
+      "enabled": true,
+      "priority": 0
+    },
+    {
+      "model_id": "vosk-model-small-ja-0.22",
+      "language_code": "ja-JP",
+      "model_path": "D:/MMDmouth/models/vosk-model-small-ja-0.22",
+      "calibration_bias": 0.0,
+      "calibration_temperature": 1.0,
+      "enabled": true,
+      "priority": 0
+    },
+    {
+      "model_id": "vosk-model-small-en-us-0.15",
+      "language_code": "en-US",
+      "model_path": "D:/MMDmouth/models/vosk-model-small-en-us-0.15",
+      "calibration_bias": 0.0,
+      "calibration_temperature": 1.0,
+      "enabled": true,
+      "priority": 0
+    }
+  ]
+}

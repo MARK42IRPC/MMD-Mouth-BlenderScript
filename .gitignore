@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+.venv-worker/
+
+# Local recognition caches and extracted models.
+cache/
+models/
+
+# Reproducible worker, Blender test, and packaging outputs.
+build-*/
+dist-addon/
+mmd_mouth/runtime/mmd_mouth_worker/
+*.log
+
+# Blender and local tooling state.
+*.blend1
+*.blend2
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

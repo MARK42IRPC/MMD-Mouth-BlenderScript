@@ -1,0 +1,10 @@
+exclude = [
+    ".venv-worker",
+    "build-probe",
+    "build-worker",
+    "build-worker-test2",
+    "build-worker-test3",
+    "build-worker-test4",
+    "dist-addon",
+    "mmd_mouth/runtime",
+]
