@@ -73,6 +73,15 @@ $archivePath = Join-Path $OutputDirectory "MMDmouth-0.4.2.zip"
 if (Test-Path -LiteralPath $archivePath) {
     Remove-Item -LiteralPath $archivePath -Force
 }
-Compress-Archive -Path $stagingPackage -DestinationPath $archivePath -CompressionLevel Optimal
+try {
+    Compress-Archive `
+        -Path $stagingPackage `
+        -DestinationPath $archivePath `
+        -CompressionLevel Optimal
+} finally {
+    if (Test-Path -LiteralPath $stagingRoot) {
+        Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+    }
+}
 
 Write-Host "Blender add-on archive created: $archivePath"
