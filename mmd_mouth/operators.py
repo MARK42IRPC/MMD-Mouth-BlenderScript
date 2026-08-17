@@ -22,7 +22,9 @@ from .blender_runtime import (
     start_recognition,
 )
 from .constants import DEFAULT_BACKEND_ID, DEFAULT_LANGUAGE_CODE
+from .properties import sort_clip_events
 from .recognition.runtime import WorkerRuntimeError
+from .transcoding import AudioTranscodeError, transcode_clip_audio
 
 
 def _active_profile(settings):
@@ -128,6 +130,9 @@ class MMDMOUTH_OT_add_clip(Operator):
         clip.backend_id = DEFAULT_BACKEND_ID
         clip.language_code = settings.default_language_code or DEFAULT_LANGUAGE_CODE
         clip.generation_mode = settings.default_generation_mode
+        clip.attack_ms = settings.default_attack_ms
+        clip.release_ms = settings.default_release_ms
+        clip.hold_ratio = settings.default_hold_ratio
         clip.start_frame = context.scene.frame_start
         clip.render_fps = context.scene.render.fps
         clip.render_fps_base = context.scene.render.fps_base
@@ -158,6 +163,119 @@ class MMDMOUTH_OT_remove_clip(Operator):
         remove_clip_audio(context.scene, clip)
         profile.clips.remove(index)
         profile.active_clip_index = min(index, max(0, len(profile.clips) - 1))
+        return {"FINISHED"}
+
+
+class MMDMOUTH_OT_transcode_audio(Operator):
+    bl_idname = "mmd_mouth.transcode_audio"
+    bl_label = "Convert Audio"
+    bl_description = "Convert the selected audio to a 16-bit PCM WAV cache"
+
+    @classmethod
+    def poll(cls, context):
+        clip = _active_clip(_active_profile(context.scene.mmd_mouth))
+        return (
+            not is_recognition_active()
+            and clip is not None
+            and bool(str(clip.audio_path).strip())
+        )
+
+    def execute(self, context):
+        clip = _active_clip(_active_profile(context.scene.mmd_mouth))
+        try:
+            output_path = transcode_clip_audio(context.scene, clip)
+        except AudioTranscodeError as exc:
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+        try:
+            from .audio import AudioPreviewError, sync_clip_audio
+
+            sync_clip_audio(context.scene, clip)
+        except AudioPreviewError as exc:
+            self.report({"WARNING"}, f"Audio converted, preview unavailable: {exc}")
+        else:
+            self.report({"INFO"}, f"Audio converted: {output_path.name}")
+        return {"FINISHED"}
+
+
+class MMDMOUTH_OT_add_event(Operator):
+    bl_idname = "mmd_mouth.add_event"
+    bl_label = "Add Timeline Event"
+    bl_description = "Add a manually editable mouth timeline event"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            not is_recognition_active()
+            and _active_clip(_active_profile(context.scene.mmd_mouth)) is not None
+        )
+
+    def execute(self, context):
+        clip = _active_clip(_active_profile(context.scene.mmd_mouth))
+        start_sec = float(clip.events[-1].end_sec) if clip.events else 0.0
+        event = clip.events.add()
+        event.viseme_id = "A"
+        event.start_sec = start_sec
+        event.end_sec = start_sec + 0.1
+        event.weight = 1.0
+        event.source = "MANUAL"
+        event.source_index = -1
+        event.source_text = "Manual"
+        event.phoneme = ""
+        event.priority = 50
+        sort_clip_events(clip)
+        clip.active_event_index = next(
+            index
+            for index, item in enumerate(clip.events)
+            if item.as_pointer() == event.as_pointer()
+        )
+        clip.event_count = len(clip.events)
+        if clip.status in {"RECOGNIZED", "BAKED", "STALE"}:
+            clip.status = "STALE"
+        else:
+            clip.status = "DRAFT"
+        return {"FINISHED"}
+
+
+class MMDMOUTH_OT_remove_event(Operator):
+    bl_idname = "mmd_mouth.remove_event"
+    bl_label = "Remove Timeline Event"
+    bl_description = "Remove the selected mouth timeline event"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        clip = _active_clip(_active_profile(context.scene.mmd_mouth))
+        return not is_recognition_active() and clip is not None and bool(clip.events)
+
+    def execute(self, context):
+        clip = _active_clip(_active_profile(context.scene.mmd_mouth))
+        index = min(max(0, clip.active_event_index), len(clip.events) - 1)
+        clip.events.remove(index)
+        clip.active_event_index = min(index, max(0, len(clip.events) - 1))
+        clip.event_count = len(clip.events)
+        if clip.events and clip.status in {"RECOGNIZED", "BAKED", "STALE"}:
+            clip.status = "STALE"
+        elif not clip.events:
+            clip.status = "DRAFT"
+        return {"FINISHED"}
+
+
+class MMDMOUTH_OT_sort_events(Operator):
+    bl_idname = "mmd_mouth.sort_events"
+    bl_label = "Sort Timeline"
+    bl_description = "Sort mouth timeline events by start time"
+
+    @classmethod
+    def poll(cls, context):
+        clip = _active_clip(_active_profile(context.scene.mmd_mouth))
+        return not is_recognition_active() and clip is not None and bool(clip.events)
+
+    def execute(self, context):
+        clip = _active_clip(_active_profile(context.scene.mmd_mouth))
+        sort_clip_events(clip)
+        clip.event_count = len(clip.events)
         return {"FINISHED"}
 
 
@@ -265,7 +383,7 @@ class MMDMOUTH_OT_scan_bindings(Operator):
         return {"FINISHED"}
 
 
-def _execute_generate(operator, context):
+def _execute_generate(operator, context, *, reuse_timeline=False):
     scene = context.scene
     settings = scene.mmd_mouth
     profile = _active_profile(settings)
@@ -273,7 +391,7 @@ def _execute_generate(operator, context):
     try:
         if not profile.bindings or profile.binding_status == "UNSCANNED":
             scan_mmd_bindings(profile)
-        if clip.events and clip.status != "STALE":
+        if clip.events and (reuse_timeline or clip.status != "STALE"):
             generated = generate_clip(scene, profile, clip)
             operator.report({"INFO"}, f"Generated {generated} animation owner(s)")
             return {"FINISHED"}
@@ -316,14 +434,16 @@ class MMDMOUTH_OT_generate(Operator):
 class MMDMOUTH_OT_regenerate(Operator):
     bl_idname = "mmd_mouth.regenerate"
     bl_label = "Regenerate Mouth"
-    bl_description = "Replace the selected clip's generated mouth animation"
+    bl_description = (
+        "Replace generated mouth animation using the selected clip timeline"
+    )
 
     @classmethod
     def poll(cls, context):
         return _can_generate(context)
 
     def execute(self, context):
-        return _execute_generate(self, context)
+        return _execute_generate(self, context, reuse_timeline=True)
 
 
 class MMDMOUTH_OT_clear_generated(Operator):
@@ -371,6 +491,10 @@ CLASSES = (
     MMDMOUTH_OT_remove_model,
     MMDMOUTH_OT_add_clip,
     MMDMOUTH_OT_remove_clip,
+    MMDMOUTH_OT_transcode_audio,
+    MMDMOUTH_OT_add_event,
+    MMDMOUTH_OT_remove_event,
+    MMDMOUTH_OT_sort_events,
     MMDMOUTH_OT_add_recognizer_model,
     MMDMOUTH_OT_remove_recognizer_model,
     MMDMOUTH_OT_check_worker,

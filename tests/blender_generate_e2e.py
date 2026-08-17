@@ -23,7 +23,9 @@ from mmd_mouth.recognition.model_assets import (  # noqa: E402
 )
 
 
-AUDIO = ROOT / "zh_vo_MAIN_YHX_2_7.wav"
+AUDIO = Path(
+    os.environ.get("MMD_MOUTH_TEST_AUDIO", str(ROOT / "zh_vo_MAIN_YHX_2_7.wav"))
+).resolve()
 CACHE = ROOT / "cache" / "blender-generate-e2e"
 OUTPUT = CACHE / "result.json"
 

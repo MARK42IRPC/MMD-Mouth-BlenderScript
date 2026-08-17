@@ -9,7 +9,12 @@ import os
 import tempfile
 from typing import Any, Dict, Sequence
 
-from ..constants import CANDIDATE_SCORING_VERSION, WORKER_PROTOCOL_VERSION
+from ..constants import (
+    CANDIDATE_SCORING_VERSION,
+    DEFAULT_ATTACK_MS,
+    DEFAULT_RELEASE_MS,
+    WORKER_PROTOCOL_VERSION,
+)
 from .pipeline import VoskPipelineError, run_vosk_pipeline
 from .scoring import CandidateScoreConfig
 from .vosk_backend import VoskModelSpec
@@ -90,8 +95,8 @@ def run_job(job: Dict[str, Any]) -> Dict[str, Any]:
         preferred_language_code=str(
             job.get("requested_language_code", "")
         ),
-        attack_ms=float(timeline_config.get("attack_ms", 35.0)),
-        release_ms=float(timeline_config.get("release_ms", 45.0)),
+        attack_ms=float(timeline_config.get("attack_ms", DEFAULT_ATTACK_MS)),
+        release_ms=float(timeline_config.get("release_ms", DEFAULT_RELEASE_MS)),
         score_config=score_config,
     )
     return {

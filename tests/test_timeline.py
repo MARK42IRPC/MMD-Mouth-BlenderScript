@@ -106,6 +106,26 @@ class TimelineTests(unittest.TestCase):
         self.assertGreater(values["SMOOTHSTEP"], values["EASE_IN"])
         self.assertNotAlmostEqual(values["SMOOTHSTEP"], values["SINE"], places=4)
 
+    def test_smooth_transition_is_not_shortened_for_a_short_phone(self):
+        events = build_viseme_events([make_phoneme("a", 0.2, 0.22)])
+
+        value = evaluate_viseme_channels(
+            events,
+            0.15,
+            attack_ms=120.0,
+            release_ms=120.0,
+            easing_mode="SMOOTHSTEP",
+        )["A"]
+
+        self.assertGreater(value, 0.0)
+        self.assertLess(value, 1.0)
+
+    def test_recognized_events_keep_raw_phone_bounds(self):
+        events = build_viseme_events([make_phoneme("m", 0.2, 0.3)])
+
+        self.assertEqual(events[0].start_sec, 0.2)
+        self.assertEqual(events[0].end_sec, 0.3)
+
 
 if __name__ == "__main__":
     unittest.main()

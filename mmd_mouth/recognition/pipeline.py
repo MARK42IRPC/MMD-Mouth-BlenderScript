@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Optional, Sequence
 
+from ..constants import DEFAULT_ATTACK_MS, DEFAULT_RELEASE_MS
 from ..core.schema import LanguageSegment, RecognitionCandidate, RecognitionDocument
 from ..core.timeline import build_viseme_events
 from ..language.g2p import G2PError, phonemize_words
@@ -37,8 +38,8 @@ def run_vosk_pipeline(
     start_sec: float = 0.0,
     end_sec: Optional[float] = None,
     preferred_language_code: str = "",
-    attack_ms: float = 35.0,
-    release_ms: float = 45.0,
+    attack_ms: float = DEFAULT_ATTACK_MS,
+    release_ms: float = DEFAULT_RELEASE_MS,
     score_config: CandidateScoreConfig | None = None,
 ) -> RecognitionBatchResult:
     """Run configured models on one shared audio segment and select winners.

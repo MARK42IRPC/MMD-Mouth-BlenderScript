@@ -77,7 +77,7 @@ def run_model(model_id: str, language_code: str, checksum: str) -> dict:
         )
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     document = payload["document"]
-    if document["schema_version"] != 4 or payload["protocol_version"] != 2:
+    if document["schema_version"] != 5 or payload["protocol_version"] != 2:
         raise AssertionError(f"{model_id} returned an incompatible contract")
     if not document["words"]:
         raise AssertionError(f"{model_id} recognized no words from the fixture")

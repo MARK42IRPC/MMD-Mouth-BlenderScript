@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from math import ceil
 import os
-from pathlib import Path
 from typing import Any
 import warnings
 
 import bpy
+
+from .transcoding import effective_audio_path
 
 
 CLIP_ID_KEY = "mmd_mouth_clip_id"
@@ -95,7 +96,7 @@ def sync_clip_audio(scene: Any, clip: Any) -> Any | None:
     if not audio_value:
         remove_clip_audio(scene, clip)
         return None
-    audio_path = Path(bpy.path.abspath(audio_value)).expanduser()
+    audio_path = effective_audio_path(clip)
     if not audio_path.is_file():
         remove_clip_audio(scene, clip)
         raise AudioPreviewError(f"audio file does not exist: {audio_path}")

@@ -17,6 +17,12 @@ _ZH_HANS = {
     "Mouth Morphs:": "口型形态键：",
     "Scan": "扫描",
     "Audio": "音频",
+    "Convert Audio": "转换音频",
+    "Converted PCM WAV ready": "PCM WAV 转换完成",
+    "Audio Conversion Error": "音频转换错误",
+    "Convert the selected audio to a 16-bit PCM WAV cache": (
+        "将选中的音频转换为 16-bit PCM WAV 缓存"
+    ),
     "Preview Volume": "预览响度",
     "Start Frame": "起始帧",
     "Language": "语言",
@@ -25,6 +31,21 @@ _ZH_HANS = {
     "Render FPS:": "渲染帧率：",
     "Generation Mode": "生成模式",
     "Mouth Blend": "口型混合",
+    "Transition": "过渡",
+    "Transition In (ms)": "进入过渡（毫秒）",
+    "Transition Out (ms)": "退出过渡（毫秒）",
+    "Hold Ratio": "保持比例",
+    "Mouth Timeline": "口型时间线",
+    "No timeline events": "没有时间线事件",
+    "Add Timeline Event": "添加时间线事件",
+    "Remove Timeline Event": "删除时间线事件",
+    "Sort Timeline": "排序时间线",
+    "Sort mouth timeline events by start time": "按开始时间排序口型时间线",
+    "Add a manually editable mouth timeline event": "添加可手动编辑的口型时间线事件",
+    "Remove the selected mouth timeline event": "删除选中的口型时间线事件",
+    "Time for a mouth shape to blend in before its event": "口型事件开始前的混入时间",
+    "Time for a mouth shape to blend out after its event": "口型事件结束后的混出时间",
+    "Preferred portion of an event kept at full strength": "事件保持满强度的比例",
     "Envelope easing and adjacent-vowel blending mode": "包络缓动与相邻元音混合模式",
     "Linear": "线性",
     "Smoothstep": "平滑步进",
@@ -124,7 +145,7 @@ _ZH_HANS = {
         "需要时先识别音频，然后生成 MMD 口型动画"
     ),
     "Replace the selected clip's generated mouth animation": (
-        "替换选中片段已生成的口型动画"
+        "使用当前时间线替换选中片段已生成的口型动画"
     ),
     "Remove animation assets owned by the selected clip": (
         "移除选中片段所属的动画资源"

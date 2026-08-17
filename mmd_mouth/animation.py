@@ -102,7 +102,16 @@ def scan_mmd_bindings(profile: Any) -> int:
 def _rna_events(clip: Any) -> list[VisemeEvent]:
     offset = max(0.0, float(clip.audio_offset_sec))
     result = []
-    for value in clip.events:
+    ordered_events = sorted(
+        clip.events,
+        key=lambda value: (
+            float(value.start_sec),
+            float(value.end_sec),
+            int(value.source_index),
+            value.viseme_id,
+        ),
+    )
+    for value in ordered_events:
         end_sec = max(0.0, float(value.end_sec) - offset)
         start_sec = min(end_sec, max(0.0, float(value.start_sec) - offset))
         result.append(
@@ -151,7 +160,9 @@ def _add_curve(
     points.add(len(samples))
     for point, (frame, value) in zip(points, samples):
         point.co = (frame, value)
-        point.interpolation = "LINEAR"
+        point.interpolation = "BEZIER"
+        point.handle_left_type = "AUTO_CLAMPED"
+        point.handle_right_type = "AUTO_CLAMPED"
     fcurve.update()
 
 
@@ -555,9 +566,9 @@ def generate_clip(scene: Any, profile: Any, clip: Any) -> int:
             events,
             duration_sec=clip.duration_sec,
             fps=effective_fps,
-            attack_ms=scene.mmd_mouth.default_attack_ms,
-            release_ms=scene.mmd_mouth.default_release_ms,
-            hold_ratio=scene.mmd_mouth.default_hold_ratio,
+            attack_ms=clip.attack_ms,
+            release_ms=clip.release_ms,
+            hold_ratio=clip.hold_ratio,
             easing_mode=clip.easing_mode,
         )
     )

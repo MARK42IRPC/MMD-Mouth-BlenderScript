@@ -25,6 +25,8 @@ from .recognition.runtime import (
     WorkerTask,
     resolve_worker,
 )
+from .properties import sort_clip_events
+from .transcoding import ensure_compatible_audio
 
 
 @dataclass
@@ -242,9 +244,7 @@ def _model_payloads(settings: Any, clip: Any) -> list[Dict[str, Any]]:
 
 
 def _job_payload(scene: Any, settings: Any, profile: Any, clip: Any) -> Dict[str, Any]:
-    audio_path = _absolute_path(clip.audio_path)
-    if not audio_path or not Path(audio_path).is_file():
-        raise ValueError(f"audio file does not exist: {audio_path or '<empty>'}")
+    audio_path = str(ensure_compatible_audio(scene, clip))
     if clip.audio_offset_sec < 0.0:
         raise ValueError("audio offset must be non-negative")
     end_sec = None
@@ -259,9 +259,9 @@ def _job_payload(scene: Any, settings: Any, profile: Any, clip: Any) -> Dict[str
         "end_sec": end_sec,
         "requested_language_code": clip.language_code,
         "timeline_config": {
-            "attack_ms": settings.default_attack_ms,
-            "release_ms": settings.default_release_ms,
-            "hold_ratio": settings.default_hold_ratio,
+            "attack_ms": clip.attack_ms,
+            "release_ms": clip.release_ms,
+            "hold_ratio": clip.hold_ratio,
         },
         "profile_id": profile.profile_id,
         "clip_id": clip.clip_id,
@@ -441,6 +441,8 @@ def _import_document(
     for value in document.get("events", []):
         if isinstance(value, dict):
             _copy_event(clip, value)
+    sort_clip_events(clip)
+    clip.active_event_index = 0
     words = [
         value.get("text", "")
         for value in document.get("words", [])

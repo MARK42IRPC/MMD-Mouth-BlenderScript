@@ -75,6 +75,30 @@ class MMDMOUTH_UL_clips(UIList):
         row.label(text="", icon=status_icons.get(item.status, "DOT"))
 
 
+class MMDMOUTH_UL_events(UIList):
+    bl_idname = "MMDMOUTH_UL_events"
+
+    def draw_item(
+        self,
+        context,
+        layout,
+        data,
+        item,
+        icon,
+        active_data,
+        active_propname,
+        index,
+    ):
+        del context, data, icon, active_data, active_propname
+        row = layout.row(align=True)
+        label = item.source_text or item.source_phoneme or item.phoneme or "Manual"
+        row.label(text=f"{index + 1} {label[:12]}", icon="SPEAKER")
+        row.prop(item, "viseme_id", text="")
+        row.prop(item, "start_sec", text="")
+        row.prop(item, "end_sec", text="")
+        row.prop(item, "weight", text="")
+
+
 class MMDMOUTH_PT_main(Panel):
     bl_idname = "MMDMOUTH_PT_main"
     bl_label = "MMD Mouth"
@@ -142,7 +166,15 @@ class MMDMOUTH_PT_main(Panel):
         if clip is None:
             return
         box.prop(clip, "display_name", text="Name")
-        box.prop(clip, "audio_path", text="Audio")
+        audio_row = box.row(align=True)
+        audio_row.prop(clip, "audio_path", text="Audio")
+        audio_row.operator(
+            "mmd_mouth.transcode_audio",
+            text="",
+            icon="FILE_REFRESH",
+        )
+        if clip.transcoded_audio_path:
+            box.label(text="Converted PCM WAV ready", icon="CHECKMARK")
         box.prop(clip, "audio_volume", slider=True)
         row = box.row(align=True)
         row.prop(clip, "start_frame")
@@ -155,7 +187,52 @@ class MMDMOUTH_PT_main(Panel):
         row.label(text=f"{scene.render.fps / scene.render.fps_base:g}")
         box.prop(clip, "generation_mode", expand=True)
         box.prop(clip, "easing_mode", text="Mouth Blend")
+        box.label(text="Transition")
+        row = box.row(align=True)
+        row.prop(clip, "attack_ms", text="In")
+        row.prop(clip, "release_ms", text="Out")
+        box.prop(clip, "hold_ratio", text="Hold")
         box.prop(clip, "mouth_strength", slider=True)
+
+        timeline = box.row(align=True)
+        timeline_icon = "TRIA_DOWN" if clip.show_timeline else "TRIA_RIGHT"
+        timeline.prop(
+            clip,
+            "show_timeline",
+            text="Mouth Timeline",
+            icon=timeline_icon,
+            emboss=False,
+        )
+        timeline.label(text=str(len(clip.events)))
+        if clip.show_timeline:
+            if clip.events:
+                box.template_list(
+                    "MMDMOUTH_UL_events",
+                    "",
+                    clip,
+                    "events",
+                    clip,
+                    "active_event_index",
+                    rows=min(max(len(clip.events), 3), 8),
+                )
+            else:
+                box.label(text="No timeline events")
+            timeline_controls = box.row(align=True)
+            timeline_controls.operator(
+                "mmd_mouth.add_event",
+                text="",
+                icon="ADD",
+            )
+            timeline_controls.operator(
+                "mmd_mouth.remove_event",
+                text="",
+                icon="REMOVE",
+            )
+            timeline_controls.operator(
+                "mmd_mouth.sort_events",
+                text="",
+                icon="SORTALPHA",
+            )
 
         primary = box.row()
         primary.scale_y = 1.35
@@ -193,6 +270,8 @@ class MMDMOUTH_PT_main(Panel):
             box.prop(clip, "source_transcript", text="Transcript")
         if clip.audio_preview_error:
             box.label(text=clip.audio_preview_error[:120], icon="ERROR")
+        if clip.audio_transcode_error:
+            box.label(text=clip.audio_transcode_error[:120], icon="ERROR")
         if clip.last_error:
             box.label(text=clip.last_error[:120], icon="ERROR")
 
@@ -265,6 +344,7 @@ class MMDMOUTH_PT_main(Panel):
 CLASSES = (
     MMDMOUTH_UL_models,
     MMDMOUTH_UL_clips,
+    MMDMOUTH_UL_events,
     MMDMOUTH_PT_main,
 )
 

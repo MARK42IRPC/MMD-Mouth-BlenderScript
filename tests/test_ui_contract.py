@@ -39,6 +39,26 @@ class UiContractTests(unittest.TestCase):
             source,
         )
 
+    def test_clip_draw_exposes_editable_timeline_and_transition_controls(self) -> None:
+        source = UI_MODULE.read_text(encoding="utf-8")
+        self.assertIn('row.prop(clip, "attack_ms", text="In")', source)
+        self.assertIn('row.prop(clip, "release_ms", text="Out")', source)
+        self.assertIn('"show_timeline",', source)
+        self.assertIn('"MMDMOUTH_UL_events"', source)
+        self.assertIn('"mmd_mouth.transcode_audio"', source)
+
+    def test_regenerate_uses_existing_timeline(self) -> None:
+        operators = UI_MODULE.parents[0] / "operators.py"
+        source = operators.read_text(encoding="utf-8")
+        self.assertIn(
+            'return _execute_generate(self, context, reuse_timeline=True)',
+            source,
+        )
+        self.assertIn(
+            'if clip.events and (reuse_timeline or clip.status != "STALE"):',
+            source,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

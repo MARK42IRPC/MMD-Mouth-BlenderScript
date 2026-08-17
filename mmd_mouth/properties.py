@@ -19,9 +19,12 @@ from .constants import (
     BINDING_STATUS_ITEMS,
     CANDIDATE_SCORING_VERSION,
     CLIP_STATUS_ITEMS,
+    DEFAULT_ATTACK_MS,
     DEFAULT_BACKEND_ID,
     DEFAULT_GENERATION_MODE,
+    DEFAULT_HOLD_RATIO,
     DEFAULT_LANGUAGE_CODE,
+    DEFAULT_RELEASE_MS,
     GENERATION_MODE_ITEMS,
     IPA_NORMALIZATION_VERSION,
     LANGUAGE_ITEMS,
@@ -44,7 +47,7 @@ from .constants import (
 
 
 def _mark_timeline_stale(clip, _context):
-    if clip.events or clip.status in {"RECOGNIZED", "BAKED"}:
+    if clip.status in {"RECOGNIZED", "BAKED"}:
         clip.status = "STALE"
 
 
@@ -62,6 +65,8 @@ def _sync_audio_preview(clip, context):
 
 
 def _update_audio_path(clip, context):
+    clip.transcoded_audio_path = ""
+    clip.audio_transcode_error = ""
     _mark_timeline_stale(clip, context)
     _sync_audio_preview(clip, context)
 
@@ -87,23 +92,83 @@ def _reset_model_bindings(profile, _context):
     profile.binding_status = "UNSCANNED"
 
 
+def _find_event_clip(event):
+    pointer = event.as_pointer()
+    for scene in getattr(bpy.data, "scenes", ()):
+        settings = getattr(scene, "mmd_mouth", None)
+        if settings is None:
+            continue
+        for profile in settings.model_profiles:
+            for clip in profile.clips:
+                if any(item.as_pointer() == pointer for item in clip.events):
+                    return clip
+    return None
+
+
+def sort_clip_events(clip) -> None:
+    """Keep the editable event collection in chronological order."""
+
+    if len(clip.events) < 2:
+        return
+    active_pointer = None
+    active_index = int(getattr(clip, "active_event_index", 0))
+    if 0 <= active_index < len(clip.events):
+        active_pointer = clip.events[active_index].as_pointer()
+    ordered = sorted(
+        list(clip.events),
+        key=lambda item: (
+            float(item.start_sec),
+            float(item.end_sec),
+            int(item.source_index),
+            item.viseme_id,
+        ),
+    )
+    for target_index, item in enumerate(ordered):
+        current_index = next(
+            index
+            for index, current in enumerate(clip.events)
+            if current.as_pointer() == item.as_pointer()
+        )
+        if current_index != target_index:
+            clip.events.move(current_index, target_index)
+    if active_pointer is not None:
+        clip.active_event_index = next(
+            index
+            for index, item in enumerate(clip.events)
+            if item.as_pointer() == active_pointer
+        )
+
+
+def _update_event_timeline(event, context):
+    clip = _find_event_clip(event)
+    if clip is None:
+        return
+    if event.end_sec < event.start_sec:
+        event.end_sec = event.start_sec
+    sort_clip_events(clip)
+    _mark_timeline_stale(clip, context)
+
+
 class MMDMouthVisemeEvent(PropertyGroup):
     viseme_id: EnumProperty(
         name="Viseme",
         items=VISEME_ITEMS,
         default="REST",
+        update=_update_event_timeline,
     )
     start_sec: FloatProperty(
         name="Start (s)",
         min=0.0,
         default=0.0,
         precision=4,
+        update=_update_event_timeline,
     )
     end_sec: FloatProperty(
         name="End (s)",
         min=0.0,
         default=0.0,
         precision=4,
+        update=_update_event_timeline,
     )
     weight: FloatProperty(
         name="Weight",
@@ -111,6 +176,7 @@ class MMDMouthVisemeEvent(PropertyGroup):
         max=1.0,
         default=1.0,
         precision=4,
+        update=_update_event_timeline,
     )
     confidence: FloatProperty(
         name="Confidence",
@@ -356,6 +422,12 @@ class MMDMouthClip(PropertyGroup):
         update=_update_audio_path,
     )
     audio_hash: StringProperty(name="Audio Hash", default="")
+    transcoded_audio_path: StringProperty(
+        name="Converted Audio",
+        subtype="FILE_PATH",
+        default="",
+    )
+    audio_transcode_error: StringProperty(name="Audio Conversion Error", default="")
     start_frame: IntProperty(
         name="Start Frame",
         min=0,
@@ -394,11 +466,39 @@ class MMDMouthClip(PropertyGroup):
         default=1.0,
         precision=3,
     )
+    attack_ms: FloatProperty(
+        name="Transition In (ms)",
+        description="Time for a mouth shape to blend in before its event",
+        min=0.0,
+        max=1000.0,
+        default=DEFAULT_ATTACK_MS,
+        precision=1,
+        update=_mark_timeline_stale,
+    )
+    release_ms: FloatProperty(
+        name="Transition Out (ms)",
+        description="Time for a mouth shape to blend out after its event",
+        min=0.0,
+        max=1000.0,
+        default=DEFAULT_RELEASE_MS,
+        precision=1,
+        update=_mark_timeline_stale,
+    )
+    hold_ratio: FloatProperty(
+        name="Hold Ratio",
+        description="Preferred portion of an event kept at full strength",
+        min=0.0,
+        max=1.0,
+        default=DEFAULT_HOLD_RATIO,
+        precision=3,
+        update=_mark_timeline_stale,
+    )
     easing_mode: EnumProperty(
         name="Mouth Blend",
         description="Envelope easing and adjacent-vowel blending mode",
         items=EASING_MODE_ITEMS,
         default="SMOOTHSTEP",
+        update=_mark_timeline_stale,
     )
     audio_strip_name: StringProperty(name="Audio Strip", default="")
     audio_preview_error: StringProperty(name="Audio Preview Error", default="")
@@ -471,6 +571,8 @@ class MMDMouthClip(PropertyGroup):
     )
     language_segments: CollectionProperty(type=MMDMouthLanguageSegment)
     assets: CollectionProperty(type=MMDMouthGeneratedAsset)
+    show_timeline: BoolProperty(name="Show Timeline", default=False)
+    active_event_index: IntProperty(name="Active Timeline Event", min=0, default=0)
 
 
 class MMDMouthModelProfile(PropertyGroup):
@@ -520,21 +622,21 @@ class MMDMouthSceneSettings(PropertyGroup):
         name="Attack (ms)",
         min=0.0,
         max=1000.0,
-        default=35.0,
+        default=DEFAULT_ATTACK_MS,
         precision=2,
     )
     default_release_ms: FloatProperty(
         name="Release (ms)",
         min=0.0,
         max=1000.0,
-        default=45.0,
+        default=DEFAULT_RELEASE_MS,
         precision=2,
     )
     default_hold_ratio: FloatProperty(
         name="Hold Ratio",
         min=0.0,
         max=1.0,
-        default=0.55,
+        default=DEFAULT_HOLD_RATIO,
         precision=3,
     )
     cache_directory: StringProperty(

@@ -44,8 +44,8 @@ Each generated clip stores the Blender `render.fps` and `render.fps_base` values
 | `default_backend_id` | string | Backend used for new clips; initially `vosk` |
 | `default_language_code` | enum | `zh-CN`, `ja-JP`, `en-US`, or whole-clip `AUTO` comparison |
 | `default_generation_mode` | enum | Direct shape-key bake or controller-driven output |
-| `default_attack_ms` | float | Default mouth attack time |
-| `default_release_ms` | float | Default mouth release time |
+| `default_attack_ms` | float | Default transition-in time for new clips |
+| `default_release_ms` | float | Default transition-out time for new clips |
 | `default_hold_ratio` | float | Default hold portion of a viseme event |
 | `cache_directory` | path | Optional external recognition cache directory |
 | `worker_mode` | enum | Automatic, packaged, development, or custom worker selection |
@@ -136,6 +136,8 @@ The adapter must validate the target before generation. Missing targets, duplica
 | `display_name` | string | UI label |
 | `audio_path` | path | Original audio source |
 | `audio_hash` | string | Cache key component for the source audio |
+| `transcoded_audio_path` | path | Cached 16-bit PCM WAV used by recognition when needed |
+| `audio_transcode_error` | string | Last audio conversion error |
 | `start_frame` | integer | Blender frame at which the clip begins |
 | `audio_offset_sec` | float | Offset applied within the source audio |
 | `duration_sec` | float | Audio or recognized duration |
@@ -143,6 +145,9 @@ The adapter must validate the target before generation. Missing targets, duplica
 | `audio_strip_name` | string | Last known display name of the owned VSE strip |
 | `audio_preview_error` | string | Last non-fatal VSE synchronization error |
 | `mouth_strength` | float | Output multiplier applied during animation generation |
+| `attack_ms` | float | Transition-in time used when generating this clip |
+| `release_ms` | float | Transition-out time used when generating this clip |
+| `hold_ratio` | float | Preferred full-strength portion of an event |
 | `easing_mode` | enum | Attack/release curve and adjacent-vowel crossfade mode |
 | `language_code` | enum | Explicit language or whole-clip `AUTO` model comparison |
 | `backend_id` | string | Recognition backend, initially `vosk` |
@@ -161,15 +166,17 @@ The adapter must validate the target before generation. Missing targets, duplica
 | `cache_path` | path | Optional external JSON cache |
 | `last_error` | string | Last generation error for this clip |
 | `phoneme_count` | integer | Cached normalized phoneme count |
+| `show_timeline` | boolean | Whether the editable mouth timeline is expanded in the panel |
+| `active_event_index` | integer | Selected event in the editable timeline list |
 | `recognition_candidates` | collection | Candidate results from configured language models |
 | `phonemes` | collection | Canonical IPA phoneme timeline |
-| `events` | collection | Persisted viseme events |
+| `events` | collection | Editable, chronologically sorted viseme timeline |
 | `language_segments` | collection | Optional future per-segment language/model routing |
 | `assets` | collection | Generated actions, NLA strips, or controllers |
 
 The initial Vosk flow records one selected language segment for the whole clip. A future language router may create several segments, each with its own language and model. A mixed-language clip must never pretend that one language-specific model handled the entire source.
 
-A new clip may exist without recognition data. Generation updates the same record and owns only the animation assets listed in `assets`.
+A new clip may exist without recognition data. Generation updates the same record and owns only the animation assets listed in `assets`. Event start/end, viseme, and weight values are editable in the Blender panel; changing them marks a recognized/baked clip stale while preserving the edited timeline.
 
 Selecting `audio_path` creates a VSE Sound Strip tagged with `clip_id`. The tag,
 not `audio_strip_name`, establishes ownership. Start frame, source offset,
@@ -245,7 +252,7 @@ The initial articulation rules are:
 | `j` | `PALATAL_GLIDE` | Transition toward `I` |
 | `w` | `LABIAL_GLIDE` | Transition toward `U` or `O` |
 
-For `p`, `b`, and `m`, the timeline evaluator creates an overlapping `CLOSED` event. It must not simply replace the vowel label for the entire word. The preceding vowel is faded locally before closure, held closed for the consonant interval, and reopened toward the next vowel. This prevents the mouth from remaining open through bilabial consonants.
+For `p`, `b`, and `m`, the timeline evaluator creates an overlapping `CLOSED` event. It must not simply replace the vowel label for the entire word. The preceding vowel is faded locally before closure, held closed for the consonant interval, and reopened toward the next vowel. This prevents the mouth from remaining open through bilabial consonants. Transition windows are applied during generation rather than baked into the recognized event bounds, so manual timeline edits and transition changes can be regenerated without rerunning recognition.
 
 The raw phoneme interval remains unchanged; envelope expansion and vowel suppression happen in the timeline evaluator so alignment data stays auditable.
 
@@ -314,7 +321,7 @@ The Vosk adapter must normalize its output before it reaches the timeline layer:
 
 ```json
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "timebase": "seconds",
   "backend_id": "vosk",
   "model_id": "vosk-model-small-cn-0.22",

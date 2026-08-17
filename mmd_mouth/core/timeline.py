@@ -5,6 +5,11 @@ from __future__ import annotations
 from math import ceil, cos, isclose, pi
 from typing import Dict, Iterable, Mapping, Sequence
 
+from ..constants import (
+    DEFAULT_ATTACK_MS,
+    DEFAULT_HOLD_RATIO,
+    DEFAULT_RELEASE_MS,
+)
 from .schema import PhonemeSegment, VisemeEvent
 
 
@@ -32,13 +37,19 @@ def _ease_progress(progress: float, easing_mode: str) -> float:
 def build_viseme_events(
     phonemes: Sequence[PhonemeSegment],
     *,
-    attack_ms: float = 35.0,
-    release_ms: float = 45.0,
+    attack_ms: float = DEFAULT_ATTACK_MS,
+    release_ms: float = DEFAULT_RELEASE_MS,
 ) -> list[VisemeEvent]:
-    """Convert aligned IPA phones into vowel, closure, and suppression events."""
+    """Convert aligned IPA phones into raw vowel and suppression events.
 
-    attack_sec = max(0.0, attack_ms) / 1000.0
-    release_sec = max(0.0, release_ms) / 1000.0
+    ``attack_ms`` and ``release_ms`` remain accepted for worker compatibility,
+    but transition windows are intentionally evaluated later. This keeps the
+    recognized timeline editable and lets a new bake use different timings
+    without asking Vosk to run again.
+    """
+
+    del attack_ms, release_ms
+
     events: list[VisemeEvent] = []
     for index, phoneme in enumerate(phonemes):
         common = {
@@ -55,8 +66,8 @@ def build_viseme_events(
             events.append(
                 VisemeEvent(
                     viseme_id="CLOSED",
-                    start_sec=max(0.0, phoneme.start_sec - attack_sec),
-                    end_sec=phoneme.end_sec + release_sec,
+                    start_sec=phoneme.start_sec,
+                    end_sec=phoneme.end_sec,
                     weight=_clamp(phoneme.close_strength),
                     priority=100,
                     **common,
@@ -102,19 +113,12 @@ def _envelope(
     if duration <= 0.0:
         return event.weight if time_sec == event.start_sec else 0.0
 
-    edge_duration = duration * (1.0 - _clamp(hold_ratio))
-    requested_edges = attack_sec + release_sec
-    if requested_edges > 0.0 and requested_edges > edge_duration:
-        scale = edge_duration / requested_edges
-        actual_attack = attack_sec * scale
-        actual_release = release_sec * scale
-    else:
-        actual_attack = min(attack_sec, edge_duration)
-        actual_release = min(release_sec, max(0.0, edge_duration - actual_attack))
-
-    # Non-linear vowel envelopes overlap at shared boundaries; closure layers
-    # keep their original window so bilabial suppression remains authoritative.
-    if easing_mode != "LINEAR" and event.viseme_id in VOWEL_CHANNELS:
+    # Smooth modes treat attack/release as real wall-clock transition times.
+    # They are allowed to extend outside a short phone, which is what makes a
+    # user-selected long transition useful instead of silently shortening it.
+    if easing_mode != "LINEAR" or event.viseme_id not in VOWEL_CHANNELS:
+        actual_attack = attack_sec
+        actual_release = release_sec
         active_start = event.start_sec - actual_attack
         active_end = event.end_sec + actual_release
         if time_sec < active_start or time_sec > active_end:
@@ -126,6 +130,18 @@ def _envelope(
             progress = (time_sec - event.end_sec) / actual_release
             return event.weight * (1.0 - _ease_progress(progress, easing_mode))
         return event.weight
+
+    # Keep LINEAR as the explicit, compact legacy mode. Its ramps stay inside
+    # the event and respect the requested hold portion.
+    edge_duration = duration * (1.0 - _clamp(hold_ratio))
+    requested_edges = attack_sec + release_sec
+    if requested_edges > 0.0 and requested_edges > edge_duration:
+        scale = edge_duration / requested_edges
+        actual_attack = attack_sec * scale
+        actual_release = release_sec * scale
+    else:
+        actual_attack = min(attack_sec, edge_duration)
+        actual_release = min(release_sec, max(0.0, edge_duration - actual_attack))
 
     if time_sec < event.start_sec or time_sec > event.end_sec:
         return 0.0
@@ -142,9 +158,9 @@ def evaluate_viseme_channels(
     events: Iterable[VisemeEvent],
     time_sec: float,
     *,
-    attack_ms: float = 35.0,
-    release_ms: float = 45.0,
-    hold_ratio: float = 0.55,
+    attack_ms: float = DEFAULT_ATTACK_MS,
+    release_ms: float = DEFAULT_RELEASE_MS,
+    hold_ratio: float = DEFAULT_HOLD_RATIO,
     easing_mode: str = "LINEAR",
 ) -> Dict[str, float]:
     values = {channel: 0.0 for channel in VISEME_CHANNELS}
@@ -200,22 +216,31 @@ def sample_viseme_channels(
     *,
     duration_sec: float,
     fps: float,
-    attack_ms: float = 35.0,
-    release_ms: float = 45.0,
-    hold_ratio: float = 0.55,
+    attack_ms: float = DEFAULT_ATTACK_MS,
+    release_ms: float = DEFAULT_RELEASE_MS,
+    hold_ratio: float = DEFAULT_HOLD_RATIO,
     easing_mode: str = "LINEAR",
 ) -> Mapping[str, list[tuple[float, float]]]:
     if fps <= 0.0:
         raise ValueError("effective FPS must be positive")
+    event_list = list(events)
+    release_sec = max(0.0, release_ms) / 1000.0
+    has_outer_release = easing_mode != "LINEAR" or any(
+        event.viseme_id not in VOWEL_CHANNELS for event in event_list
+    )
+    transition_tail = release_sec if has_outer_release else 0.0
     timeline_end = max(
         max(0.0, duration_sec),
-        max((event.end_sec for event in events), default=0.0),
+        max(
+            (event.end_sec + transition_tail for event in event_list),
+            default=0.0,
+        ),
     )
     frame_count = max(1, int(ceil(timeline_end * fps)))
     sampled = {channel: [] for channel in VISEME_CHANNELS}
     for frame in range(frame_count + 1):
         values = evaluate_viseme_channels(
-            events,
+            event_list,
             frame / fps,
             attack_ms=attack_ms,
             release_ms=release_ms,

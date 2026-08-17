@@ -19,6 +19,7 @@ bl_info = {
 
 _MODULE_LOAD_ORDER = (
     "constants",
+    "transcoding",
     "audio",
     "animation",
     "bundled_models",

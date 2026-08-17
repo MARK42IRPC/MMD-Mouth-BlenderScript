@@ -1,5 +1,7 @@
 # MMD Mouth
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 MMD Mouth is a Blender 5.2 add-on that turns offline speech recognition into
 MMD `A/I/U/E/O` mouth animation.
 
@@ -16,6 +18,9 @@ MMD `A/I/U/E/O` mouth animation.
 - Per-clip Actions and NLA strips with ownership-aware cleanup.
 - Automatic owned VSE audio previews with start, trim, duration, and volume sync.
 - Per-clip mouth strength, fast regeneration, and complete clip deletion.
+- Per-clip adjustable transition-in/out time with smooth, clamped curve output.
+- Expandable, chronologically sorted, manually editable mouth timeline.
+- Blender-native conversion of common audio formats to cached 16-bit PCM WAV.
 - Selectable linear, smoothstep, sine, ease-in, and ease-out vowel blending.
 - English and Simplified Chinese Blender interface localization.
 
@@ -26,14 +31,24 @@ MMD `A/I/U/E/O` mouth animation.
 3. Select the MMD model root and add a model entry.
 4. Add a mouth clip, choose a WAV file, language, start frame, and output mode.
 5. Click `Generate Mouth`.
+6. Expand `Mouth Timeline` to adjust viseme, start, end, or weight values.
+7. Click `Regenerate` to bake the edited timeline without running recognition again.
+
+The audio refresh button beside `Audio` can convert common Blender-supported
+formats such as MP3, OGG, FLAC, and non-PCM WAV files to a cached 16-bit PCM
+WAV. `Generate Mouth` performs the same conversion automatically when needed.
+
+`Generate Mouth` recognizes audio when the clip has no usable timeline or when
+its recognition inputs are stale. `Regenerate` always uses the current editable
+timeline, so manual timing corrections are preserved.
 
 The selected Vosk model is verified and extracted on first use under Blender's
 user data directory (`mmd_mouth/models`). The add-on never writes model data to
 the Blender installation directory.
 
-The current audio reader accepts uncompressed 16-bit PCM WAV. Mono and stereo
-are supported; stereo is downmixed in the worker. Compressed audio conversion
-is not part of version 0.4.2.
+The worker reads uncompressed 16-bit PCM WAV. Mono and stereo are supported;
+stereo is downmixed in the worker. Blender's built-in audio decoder converts
+supported compressed formats to a cached mono PCM WAV before recognition.
 
 `Auto Compare` runs every enabled language model over the whole clip and keeps
 the highest-scoring candidate. It is useful when the clip language is unknown,

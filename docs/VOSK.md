@@ -32,10 +32,11 @@ Blender's Python never imports these third-party binary packages.
 
 ## Audio Contract
 
-Version 0.4.2 accepts uncompressed 16-bit PCM WAV. Mono is passed through;
-multi-channel input is downmixed to mono. Vosk receives the original sample
-rate. `audio_offset_sec` and optional duration select a WAV region, while all
-persisted word/phone/event timestamps stay in source-audio seconds.
+The worker accepts uncompressed 16-bit PCM WAV. Blender converts supported
+source formats to cached mono PCM before starting the worker. Vosk receives the
+source sample rate; `audio_offset_sec` and optional duration select a WAV
+region, while all persisted word/phone/event timestamps stay in source-audio
+seconds.
 
 ## Candidate Selection
 
