@@ -26,7 +26,7 @@ MMD `A/I/U/E/O` mouth animation.
 
 ## Install And Use
 
-1. In Blender 5.2, install `dist-addon/MMDmouth-0.4.2.zip` as an add-on.
+1. In Blender 5.2, install `dist-addon/MMDmouth-0.5.0.zip` as an add-on.
 2. Open `3D View > Sidebar > MMD Mouth`.
 3. Select the MMD model root and add a model entry.
 4. Add a mouth clip, choose a WAV file, language, start frame, and output mode.

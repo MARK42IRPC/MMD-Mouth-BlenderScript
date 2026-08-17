@@ -8,7 +8,7 @@ import bpy
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ARCHIVE = ROOT / "dist-addon" / "MMDmouth-0.4.2.zip"
+ARCHIVE = ROOT / "dist-addon" / "MMDmouth-0.5.0.zip"
 
 
 def require(condition: bool, message: str) -> None:
@@ -51,8 +51,8 @@ def main() -> None:
     import mmd_mouth
 
     require(
-        tuple(mmd_mouth.bl_info["version"]) == (0, 4, 2),
-        "installed add-on version is not 0.4.2",
+        tuple(mmd_mouth.bl_info["version"]) == (0, 5, 0),
+        "installed add-on version is not 0.5.0",
     )
     require(
         str(Path(mmd_mouth.__file__).resolve()).startswith(

@@ -11,7 +11,7 @@ Current persisted contract versions:
 
 | Contract | Version |
 | --- | --- |
-| Add-on | `0.4.2` |
+| Add-on | `0.5.0` |
 | RNA / JSON schema | `5` |
 | Viseme timeline | `4` |
 | Worker protocol | `2` |
@@ -141,7 +141,7 @@ py -3.11 -m venv .venv-worker
 
 `build_worker.ps1` replaces only `build-worker` output and the add-on-owned
 `mmd_mouth/runtime/mmd_mouth_worker` directory. `build_addon.ps1` stages source,
-worker, and model ZIPs into `dist-addon/MMDmouth-0.4.2.zip`.
+worker, and model ZIPs into `dist-addon/MMDmouth-0.5.0.zip`.
 
 ## Verification
 

@@ -25,7 +25,7 @@ MMD `A/I/U/E/O` 嘴型动画。
 
 ## 安装和使用
 
-1. 在 Blender 5.2 中安装 `dist-addon/MMDmouth-0.4.2.zip` 插件。
+1. 在 Blender 5.2 中安装 `dist-addon/MMDmouth-0.5.0.zip` 插件。
 2. 打开 `3D 视图 > 侧栏 > MMD Mouth`。
 3. 选择 MMD 模型根对象并添加模型条目。
 4. 添加口型片段，选择 WAV 文件、语言、起始帧和输出模式。

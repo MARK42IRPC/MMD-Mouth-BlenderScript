@@ -9,7 +9,7 @@ import bpy
 
 ROOT = Path(__file__).resolve().parents[1]
 OLD_ARCHIVE = ROOT / "dist-addon" / "MMDmouth-0.3.1.zip"
-NEW_ARCHIVE = ROOT / "dist-addon" / "MMDmouth-0.4.2.zip"
+NEW_ARCHIVE = ROOT / "dist-addon" / "MMDmouth-0.5.0.zip"
 
 
 def require(condition: bool, message: str) -> None:
@@ -48,13 +48,13 @@ def main() -> None:
     install(NEW_ARCHIVE)
     require(
         "FINISHED" in bpy.ops.preferences.addon_enable(module="mmd_mouth"),
-        "in-place upgrade to 0.4.2 failed",
+        "in-place upgrade to 0.5.0 failed",
     )
 
     from mmd_mouth import blender_runtime
 
     require(
-        tuple(mmd_mouth.bl_info["version"]) == (0, 4, 2),
+        tuple(mmd_mouth.bl_info["version"]) == (0, 5, 0),
         "top-level add-on module was not upgraded",
     )
     require(

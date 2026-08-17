@@ -8,7 +8,7 @@ import sys
 bl_info = {
     "name": "MMD Mouth",
     "author": "MMD Mouth contributors",
-    "version": (0, 4, 2),
+    "version": (0, 5, 0),
     "blender": (5, 2, 0),
     "location": "3D View > Sidebar > MMD Mouth",
     "description": "Speech-driven MMD mouth animation",
