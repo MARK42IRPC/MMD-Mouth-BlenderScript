@@ -141,6 +141,11 @@ class MMDMOUTH_PT_main(Panel):
         row.label(text="Mouth Morphs:")
         row.label(text=profile.binding_status.title())
         row.operator("mmd_mouth.scan_bindings", text="Scan", icon="SHAPEKEY_DATA")
+        box.operator(
+            "mmd_mouth.bake_all_keyframes",
+            text="Bake All Keyframes",
+            icon="KEY_HLT",
+        )
         return profile
 
     @staticmethod

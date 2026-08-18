@@ -188,6 +188,10 @@ def main() -> None:
         bpy.app.translations.pgettext_iface("Smoothstep") == "平滑步进",
         "easing mode translation was not registered",
     )
+    require(
+        bpy.app.translations.pgettext_iface("Bake All Keyframes") == "烘焙所有关键帧",
+        "all-keyframe bake translation was not registered",
+    )
 
     clip_id = clip.clip_id
     require("FINISHED" in bpy.ops.mmd_mouth.remove_clip(), "clip deletion failed")

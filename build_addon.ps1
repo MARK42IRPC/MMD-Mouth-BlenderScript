@@ -69,7 +69,7 @@ foreach ($modelName in $bundledModelNames) {
         -Destination (Join-Path $bundledModelDirectory $modelName)
 }
 
-$archivePath = Join-Path $OutputDirectory "MMDmouth-0.5.0.zip"
+$archivePath = Join-Path $OutputDirectory "MMDmouth-0.6.2.zip"
 if (Test-Path -LiteralPath $archivePath) {
     Remove-Item -LiteralPath $archivePath -Force
 }

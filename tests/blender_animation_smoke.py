@@ -81,7 +81,7 @@ def main() -> None:
         "FINISHED" in bpy.ops.mmd_mouth.scan_bindings(),
         "scan operator failed",
     )
-    require(len(profile.bindings) == 6, "expected 6 bindings")
+    require(len(profile.bindings) == 5, "expected five vowel bindings")
     require(profile.binding_status == "VALID", "binding scan was not valid")
 
     clip.generation_mode = "BAKE"
@@ -92,10 +92,6 @@ def main() -> None:
     scene.frame_set(20)
     require(face.data.shape_keys.key_blocks["あ"].value > 0.9, "A did not open")
     scene.frame_set(28)
-    require(
-        face.data.shape_keys.key_blocks["口閉じ"].value > 0.9,
-        "closure did not activate",
-    )
     require(
         face.data.shape_keys.key_blocks["あ"].value < 0.1,
         "closure did not suppress A",

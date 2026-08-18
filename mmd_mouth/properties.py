@@ -81,6 +81,9 @@ def _update_start_frame(clip, context):
     from .animation import move_generated_assets
 
     move_generated_assets(clip)
+    profile = _find_clip_profile(clip)
+    if profile is not None and profile.keyframe_assets and clip.status == "BAKED":
+        clip.status = "STALE"
 
 
 def _update_audio_volume(clip, context):
@@ -102,6 +105,18 @@ def _find_event_clip(event):
             for clip in profile.clips:
                 if any(item.as_pointer() == pointer for item in clip.events):
                     return clip
+    return None
+
+
+def _find_clip_profile(clip):
+    pointer = clip.as_pointer()
+    for scene in getattr(bpy.data, "scenes", ()):
+        settings = getattr(scene, "mmd_mouth", None)
+        if settings is None:
+            continue
+        for profile in settings.model_profiles:
+            if any(item.as_pointer() == pointer for item in profile.clips):
+                return profile
     return None
 
 
@@ -595,6 +610,7 @@ class MMDMouthModelProfile(PropertyGroup):
     auto_discovered: BoolProperty(name="Auto Discovered", default=False)
     bindings: CollectionProperty(type=MMDMouthBinding)
     clips: CollectionProperty(type=MMDMouthClip)
+    keyframe_assets: CollectionProperty(type=MMDMouthGeneratedAsset)
     active_clip_index: IntProperty(name="Active Clip", default=0)
 
 

@@ -102,6 +102,7 @@ def main() -> None:
     require(len(clip.phonemes) > 0, "phonemes were not imported into RNA")
     require(len(clip.events) > 0, "viseme events were not imported into RNA")
     require(len(clip.assets) == 1, "baked NLA asset was not recorded")
+    require(len(profile.bindings) == 5, "mouth output did not stay on five vowels")
     require(is_vosk_model_directory(Path(cn_model.model_path)), "model ZIP was not extracted")
 
     closed = next(event for event in clip.events if event.viseme_id == "CLOSED")
@@ -109,7 +110,6 @@ def main() -> None:
     local_sec = max(0.0, midpoint - clip.audio_offset_sec)
     scene.frame_set(clip.start_frame + round(local_sec * 30.0))
     keys = face.data.shape_keys.key_blocks
-    require(keys["口閉じ"].value > 0.5, "closed-mouth curve is inactive")
     require(
         max(keys[name].value for name in ("あ", "い", "う", "え", "お")) < 0.5,
         "closed-mouth event did not suppress vowel morphs",

@@ -11,6 +11,7 @@ Scene.mmd_mouth
   +-- model_profiles[]
         +-- bindings[]
         +-- clips[]
+        +-- keyframe_assets[]
               +-- recognition_candidates[]
               +-- language_segments[]
               +-- phonemes[]
@@ -78,6 +79,7 @@ Each generated clip stores the Blender `render.fps` and `render.fps_base` values
 | `auto_discovered` | boolean | Whether the profile came from model scanning |
 | `bindings` | collection | Viseme-to-model target mappings |
 | `clips` | collection | Clips belonging to this model |
+| `keyframe_assets` | collection | Profile-owned mouth-only Actions or NLA strips from all-keyframe baking |
 | `active_clip_index` | integer | Selected clip in the second UI list |
 
 The object pointer is convenient inside one `.blend`, but the profile ID remains the logical identity. If the object is deleted or replaced, the profile enters a warning state instead of silently targeting a different object with the same name.
@@ -103,11 +105,14 @@ The registry is configuration only. It does not load Vosk inside Blender. The wo
 
 `MMDMouthBinding` maps one internal channel to one model target.
 
-The initial channel set is:
+The recognition/output shape-key set is exactly:
 
 ```text
-REST, CLOSED, A, I, U, E, O
+A, I, U, E, O
 ```
+
+`REST` and `CLOSED` remain internal timeline suppression channels. They never
+target a model shape key or another morph channel.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
@@ -299,7 +304,7 @@ Invariants:
 | `controller_object` | object pointer | Controller object in driver mode |
 | `generated_at_schema` | integer | Schema version used to create it |
 
-Direct shape-key animation may require more than one Action because Blender animation data belongs to individual ID owners. The clip therefore stores an asset collection instead of one single action field.
+Direct shape-key animation may require more than one Action because Blender animation data belongs to individual ID owners. The clip therefore stores an asset collection instead of one single action field. `keyframe_assets` stores profile-owned mouth-only Actions created by `Bake All Keyframes`. When another Action or NLA track already owns unrelated shape-key channels, the profile Action is applied through its own NLA strip and the existing animation remains untouched.
 
 ## Word segment
 

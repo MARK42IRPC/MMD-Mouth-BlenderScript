@@ -59,6 +59,14 @@ class UiContractTests(unittest.TestCase):
             source,
         )
 
+    def test_model_draw_exposes_all_keyframe_bake(self) -> None:
+        source = UI_MODULE.read_text(encoding="utf-8")
+        operators = UI_MODULE.parents[0] / "operators.py"
+        operator_source = operators.read_text(encoding="utf-8")
+        self.assertIn('"mmd_mouth.bake_all_keyframes"', source)
+        self.assertIn('bl_idname = "mmd_mouth.bake_all_keyframes"', operator_source)
+        self.assertIn("bake_profile_keyframes", operator_source)
+
 
 if __name__ == "__main__":
     unittest.main()

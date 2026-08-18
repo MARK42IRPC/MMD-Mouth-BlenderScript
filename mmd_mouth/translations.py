@@ -98,6 +98,7 @@ _ZH_HANS = {
     "Remove Vosk Model": "删除 Vosk 模型",
     "Check Runtime": "检查运行环境",
     "Scan Mouth Morphs": "扫描口型形态键",
+    "Bake All Keyframes": "烘焙所有关键帧",
     "Cancel": "取消",
     "Bake": "烘焙",
     "Driver": "驱动器",
@@ -138,8 +139,11 @@ _ZH_HANS = {
     "Recognize the selected clip without blocking Blender": (
         "在不阻塞 Blender 的情况下识别选中片段"
     ),
-    "Find MMD A, I, U, E, O, and optional closed-mouth shape keys": (
-        "查找 MMD 的 A、I、U、E、O 和可选闭口形态键"
+    "Find the five MMD A, I, U, E, and O shape keys": (
+        "查找 MMD 的五个 A、I、U、E、O 形态键"
+    ),
+    "Regenerate every mouth clip on the active model as editable shape-key keyframes": (
+        "重新生成当前模型的所有口型片段，并写入可编辑的形态键关键帧"
     ),
     "Recognize audio when needed, then generate MMD mouth animation": (
         "需要时先识别音频，然后生成 MMD 口型动画"

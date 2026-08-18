@@ -1,7 +1,7 @@
 """Shared identifiers for the persisted MMD Mouth schema."""
 
 ADDON_ID = "mmd_mouth"
-ADDON_VERSION = (0, 5, 0)
+ADDON_VERSION = (0, 6, 2)
 SCHEMA_VERSION = 5
 TIMELINE_VERSION = 4
 CANDIDATE_SCORING_VERSION = 2

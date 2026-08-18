@@ -12,7 +12,7 @@ import bpy
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ARCHIVE = ROOT / "dist-addon" / "MMDmouth-0.5.0.zip"
+ARCHIVE = ROOT / "dist-addon" / "MMDmouth-0.6.2.zip"
 STATE = {"draws": 0, "error": ""}
 STARTED_AT = time.monotonic()
 

@@ -9,8 +9,10 @@ from bpy.types import Operator
 
 from .animation import (
     AnimationError,
+    bake_profile_keyframes,
     generate_clip,
     remove_generated_assets,
+    remove_profile_keyframe_bake,
     scan_mmd_bindings,
 )
 from .audio import remove_clip_audio
@@ -100,6 +102,7 @@ class MMDMOUTH_OT_remove_model(Operator):
             len(settings.model_profiles) - 1,
         )
         profile = settings.model_profiles[index]
+        remove_profile_keyframe_bake(profile)
         for clip in list(profile.clips):
             remove_generated_assets(clip)
             remove_clip_audio(context.scene, clip)
@@ -159,6 +162,12 @@ class MMDMOUTH_OT_remove_clip(Operator):
         reconcile_runtime_state(context.scene)
         index = min(max(0, profile.active_clip_index), len(profile.clips) - 1)
         clip = profile.clips[index]
+        if remove_profile_keyframe_bake(profile):
+            for other_clip in profile.clips:
+                if other_clip.as_pointer() == clip.as_pointer():
+                    continue
+                other_clip.status = "RECOGNIZED" if other_clip.events else "DRAFT"
+                other_clip.last_error = ""
         remove_generated_assets(clip)
         remove_clip_audio(context.scene, clip)
         profile.clips.remove(index)
@@ -360,7 +369,7 @@ class MMDMOUTH_OT_recognize(Operator):
 class MMDMOUTH_OT_scan_bindings(Operator):
     bl_idname = "mmd_mouth.scan_bindings"
     bl_label = "Scan Mouth Morphs"
-    bl_description = "Find MMD A, I, U, E, O, and optional closed-mouth shape keys"
+    bl_description = "Find the five MMD A, I, U, E, and O shape keys"
 
     @classmethod
     def poll(cls, context):
@@ -446,6 +455,45 @@ class MMDMOUTH_OT_regenerate(Operator):
         return _execute_generate(self, context, reuse_timeline=True)
 
 
+class MMDMOUTH_OT_bake_all_keyframes(Operator):
+    bl_idname = "mmd_mouth.bake_all_keyframes"
+    bl_label = "Bake All Keyframes"
+    bl_description = (
+        "Regenerate every mouth clip on the active model as editable shape-key keyframes"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        settings = context.scene.mmd_mouth
+        profile = _active_profile(settings)
+        return (
+            not is_recognition_active()
+            and profile is not None
+            and profile.root_object is not None
+            and any(clip.events for clip in profile.clips)
+        )
+
+    def execute(self, context):
+        settings = context.scene.mmd_mouth
+        profile = _active_profile(settings)
+        try:
+            if not profile.bindings or profile.binding_status == "UNSCANNED":
+                scan_mmd_bindings(profile)
+            clip_count, action_count = bake_profile_keyframes(
+                context.scene,
+                profile,
+            )
+        except (AnimationError, ValueError) as exc:
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+        self.report(
+            {"INFO"},
+            f"Baked {clip_count} clip(s) into {action_count} editable Action(s)",
+        )
+        return {"FINISHED"}
+
+
 class MMDMOUTH_OT_clear_generated(Operator):
     bl_idname = "mmd_mouth.clear_generated"
     bl_label = "Clear Generated Animation"
@@ -455,14 +503,24 @@ class MMDMOUTH_OT_clear_generated(Operator):
     @classmethod
     def poll(cls, context):
         settings = context.scene.mmd_mouth
-        clip = _active_clip(_active_profile(settings))
-        return not is_recognition_active() and clip is not None and bool(clip.assets)
+        profile = _active_profile(settings)
+        clip = _active_clip(profile)
+        return (
+            not is_recognition_active()
+            and clip is not None
+            and (bool(clip.assets) or bool(profile.keyframe_assets))
+        )
 
     def execute(self, context):
-        clip = _active_clip(_active_profile(context.scene.mmd_mouth))
+        profile = _active_profile(context.scene.mmd_mouth)
+        clip = _active_clip(profile)
+        had_profile_keyframes = bool(profile.keyframe_assets)
+        remove_profile_keyframe_bake(profile)
         remove_generated_assets(clip)
-        clip.status = "RECOGNIZED" if clip.events else "DRAFT"
-        clip.last_error = ""
+        clips_to_reset = profile.clips if had_profile_keyframes else (clip,)
+        for item in clips_to_reset:
+            item.status = "RECOGNIZED" if item.events else "DRAFT"
+            item.last_error = ""
         self.report({"INFO"}, "Generated mouth animation cleared")
         return {"FINISHED"}
 
@@ -502,6 +560,7 @@ CLASSES = (
     MMDMOUTH_OT_scan_bindings,
     MMDMOUTH_OT_generate,
     MMDMOUTH_OT_regenerate,
+    MMDMOUTH_OT_bake_all_keyframes,
     MMDMOUTH_OT_clear_generated,
     MMDMOUTH_OT_cancel,
 )

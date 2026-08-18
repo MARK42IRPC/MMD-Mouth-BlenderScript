@@ -13,9 +13,10 @@ MMD `A/I/U/E/O` mouth animation.
 - Chinese pypinyin, Japanese OpenJTalk, and English CMUdict G2P adapters.
 - Canonical IPA phonemes and consonant-aware `REST/CLOSED/A/I/U/E/O` events.
 - Bilabial `p/b/m` closure that suppresses vowels before reopening the mouth.
-- Automatic discovery of MMD `あ/い/う/え/お` shape keys and optional `口閉じ`.
+- Automatic discovery of only the five MMD `あ/い/う/え/お` shape keys.
 - Direct shape-key `BAKE` output or controller-property `DRIVER` output.
 - Per-clip Actions and NLA strips with ownership-aware cleanup.
+- Bake every active-model clip into editable shape-key keyframe control points for timeline editing or VMD morph-sequence export.
 - Automatic owned VSE audio previews with start, trim, duration, and volume sync.
 - Per-clip mouth strength, fast regeneration, and complete clip deletion.
 - Per-clip adjustable transition-in/out time with smooth, clamped curve output.
@@ -26,13 +27,14 @@ MMD `A/I/U/E/O` mouth animation.
 
 ## Install And Use
 
-1. In Blender 5.2, install `dist-addon/MMDmouth-0.5.0.zip` as an add-on.
+1. In Blender 5.2, install `dist-addon/MMDmouth-0.6.2.zip` as an add-on.
 2. Open `3D View > Sidebar > MMD Mouth`.
 3. Select the MMD model root and add a model entry.
 4. Add a mouth clip, choose a WAV file, language, start frame, and output mode.
 5. Click `Generate Mouth`.
 6. Expand `Mouth Timeline` to adjust viseme, start, end, or weight values.
 7. Click `Regenerate` to bake the edited timeline without running recognition again.
+8. Click `Bake All Keyframes` when all clips on the active model should be exposed as editable shape-key keyframes.
 
 The audio refresh button beside `Audio` can convert common Blender-supported
 formats such as MP3, OGG, FLAC, and non-PCM WAV files to a cached 16-bit PCM

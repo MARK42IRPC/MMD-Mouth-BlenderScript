@@ -11,7 +11,7 @@ Current persisted contract versions:
 
 | Contract | Version |
 | --- | --- |
-| Add-on | `0.5.0` |
+| Add-on | `0.6.2` |
 | RNA / JSON schema | `5` |
 | Viseme timeline | `4` |
 | Worker protocol | `2` |
@@ -61,8 +61,9 @@ without changing the animation contract.
 
 The timeline evaluates `REST/CLOSED/A/I/U/E/O`. Bilabial `p`, `b`, and `m`
 create high-priority `CLOSED` envelopes; `REST` and `CLOSED` attenuate all
-overlapping vowel channels. If a model has no explicit closed-mouth shape key,
-vowel suppression returns it to the neutral Basis shape.
+overlapping vowel channels. Blender output is restricted to the five scanned
+`A/I/U/E/O` shape keys; `CLOSED` remains an internal suppression layer and is
+never written to a model morph.
 
 Each clip selects an easing mode and transition-in/out times. `LINEAR`
 preserves the compact direct attack/release behavior. The non-linear modes
@@ -141,7 +142,7 @@ py -3.11 -m venv .venv-worker
 
 `build_worker.ps1` replaces only `build-worker` output and the add-on-owned
 `mmd_mouth/runtime/mmd_mouth_worker` directory. `build_addon.ps1` stages source,
-worker, and model ZIPs into `dist-addon/MMDmouth-0.5.0.zip`.
+worker, and model ZIPs into `dist-addon/MMDmouth-0.6.2.zip`.
 
 ## Verification
 
@@ -153,6 +154,7 @@ $blender = $env:MMD_MOUTH_BLENDER
 if (-not $blender) { throw "Set MMD_MOUTH_BLENDER to the Blender 5.2 executable" }
 & $blender --background --factory-startup --python tests\blender_animation_smoke.py
 & $blender --background --factory-startup --python tests\blender_clip_lifecycle.py
+& $blender --background --factory-startup --python tests\blender_bake_all_keyframes.py
 & $blender --background --factory-startup --python tests\blender_undo_runtime.py
 & $blender --background --factory-startup --python tests\blender_generate_e2e.py
 ```
